@@ -115,14 +115,51 @@ async function carregarMinhasTarefas() {
         tarefasConcluidasGlobais = concluidas;
 
         const total = pendentes.length + concluidas.length;
+        const progresso = typeof res.progresso === 'number' ? res.progresso : (total > 0 ? Math.round((concluidas.length / total) * 100) : 0);
 
         // Atualiza contadores em pills do Figma
-        document.getElementById('pill-total-tarefas').textContent = `Total de tarefas: ${total}`;
-        document.getElementById('pill-pendentes').textContent = `Pendentes: ${pendentes.length}`;
-        document.getElementById('pill-concluidas').textContent = `Concluídas: ${concluidas.length}`;
+        const pillPend = document.getElementById('pill-pendentes');
+        const pillConc = document.getElementById('pill-concluidas');
+        if (pillPend) pillPend.textContent = pendentes.length;
+        if (pillConc) pillConc.textContent = concluidas.length;
 
-        document.getElementById('count-pendentes-header').textContent = pendentes.length;
-        document.getElementById('count-concluidas-header').textContent = concluidas.length;
+        // Atualiza elementos da Barra de Progresso do Onboarding
+        const elPorcentagem = document.getElementById('onboarding-porcentagem');
+        const elContador = document.getElementById('onboarding-contador-tarefas');
+        const elBarra = document.getElementById('onboarding-progress-bar');
+        const bannerConcluido = document.getElementById('banner-onboarding-concluido');
+        const bannerTreinamento = document.getElementById('banner-mini-treinamento');
+
+        if (elPorcentagem) elPorcentagem.textContent = `${progresso}%`;
+        if (elContador) elContador.textContent = `${concluidas.length} de ${total} atividades concluídas`;
+        if (elBarra) {
+            elBarra.style.width = `${progresso}%`;
+            elBarra.setAttribute('aria-valuenow', progresso);
+            if (progresso === 100) {
+                elBarra.classList.remove('bg-primary');
+                elBarra.classList.add('bg-success');
+            } else {
+                elBarra.classList.remove('bg-success');
+                elBarra.classList.add('bg-primary');
+            }
+        }
+
+        // Verifica se o onboarding está 100% concluído
+        if (progresso === 100 && total > 0) {
+            if (bannerConcluido) bannerConcluido.classList.remove('d-none');
+            if (bannerTreinamento) bannerTreinamento.classList.add('d-none');
+        } else {
+            if (bannerConcluido) bannerConcluido.classList.add('d-none');
+            // Verifica se o mini-treinamento está pendente
+            const miniTreinamentoPendente = pendentes.some(t => 
+                t.titulo.toLowerCase().includes('mini-treinamento') || t.titulo.toLowerCase().includes('treinamento inicial')
+            );
+            if (miniTreinamentoPendente && bannerTreinamento) {
+                bannerTreinamento.classList.remove('d-none');
+            } else if (bannerTreinamento) {
+                bannerTreinamento.classList.add('d-none');
+            }
+        }
 
         // Renderiza Tarefas Pendentes (Figma Card)
         if (pendentes.length === 0) {
@@ -137,9 +174,15 @@ async function carregarMinhasTarefas() {
             `;
         } else {
             containerPendentes.innerHTML = pendentes.map(t => {
-                const tipoBadge = !t.id_funcionario && t.id_equipe
+                const isTreinamento = t.titulo.toLowerCase().includes('mini-treinamento') || t.titulo.toLowerCase().includes('treinamento inicial');
+                
+                let tipoBadge = !t.id_funcionario && t.id_equipe
                     ? `<span class="badge-figma blue">Da Equipe${t.equipe_nome ? `: ${escapeText(t.equipe_nome)}` : ''}</span>`
                     : '<span class="badge-figma blue">Individual</span>';
+
+                if (isTreinamento) {
+                    tipoBadge = `<span class="badge-figma purple me-1"><i class="bi bi-star-fill me-1"></i>Mini-Treinamento</span>` + tipoBadge;
+                }
 
                 const formatPrazo = t.prazo ? formatarData(t.prazo) : 'Sem prazo';
                 const botaoMaterial = t.anexo_url
@@ -153,10 +196,10 @@ async function carregarMinhasTarefas() {
 
                 return `
                     <div class="col-12 col-md-6 col-xl-4">
-                        <div class="task-card-figma">
+                        <div class="task-card-figma ${isTreinamento ? 'border-primary' : ''}" style="${isTreinamento ? 'border: 2px solid #bfdbfe;' : ''}">
                             <div>
                                 <div class="task-card-top">
-                                    ${tipoBadge}
+                                    <div class="d-flex flex-wrap gap-1">${tipoBadge}</div>
                                     <span class="small fw-semibold text-danger">
                                         <span style="font-size: 1rem; line-height: 0;">•</span> Pendente
                                     </span>
@@ -180,7 +223,7 @@ async function carregarMinhasTarefas() {
             }).join('');
         }
 
-        // Renderiza Tarefas Já Realizadas (Figma Card)
+        // Renderiza Tarefas Já Realizadas (Histórico de Entregas)
         if (concluidas.length === 0) {
             containerConcluidas.innerHTML = `
                 <div class="col-12">
@@ -197,30 +240,51 @@ async function carregarMinhasTarefas() {
                     ? `<span class="badge-figma neutral">Da Equipe${t.equipe_nome ? `: ${escapeText(t.equipe_nome)}` : ''}</span>`
                     : '<span class="badge-figma neutral">Individual</span>';
 
-                const formatDataConclusao = t.data_conclusao ? formatarData(t.data_conclusao) : 'Concluída';
+                const formatDataConclusao = t.data_conclusao ? formatarData(t.data_conclusao, 'com-hora') : 'Concluída';
                 const badgeArquivo = t.evidencia_arquivo_url
                     ? `<span class="badge-figma purple ms-1"><i class="bi ${isVideoMime(t.evidencia_arquivo_tipo, t.evidencia_arquivo_url) ? 'bi-camera-video' : 'bi-file-earmark-pdf'} me-1"></i>${isVideoMime(t.evidencia_arquivo_tipo, t.evidencia_arquivo_url) ? 'Vídeo' : 'PDF'}</span>`
                     : '';
 
+                // Formata o resumo da evidência para exibição clara
+                let resumoEvidencia = '';
+                if (t.evidencia) {
+                    if (t.evidencia.startsWith('http://') || t.evidencia.startsWith('https://')) {
+                        resumoEvidencia = `
+                            <div class="small p-2 mt-2 rounded" style="background: #f1f5f9; border: 1px solid #e2e8f0;">
+                                <strong class="text-secondary d-block"><i class="bi bi-link-45deg me-1"></i>Evidência enviada:</strong>
+                                <a href="${escapeText(t.evidencia)}" target="_blank" rel="noopener noreferrer" class="text-primary text-truncate d-block">${escapeText(t.evidencia)}</a>
+                            </div>
+                        `;
+                    } else {
+                        resumoEvidencia = `
+                            <div class="small p-2 mt-2 rounded text-dark" style="background: #f8fafc; border: 1px solid #e2e8f0;">
+                                <strong class="text-secondary d-block"><i class="bi bi-file-text me-1"></i>Evidência enviada:</strong>
+                                ${escapeText(t.evidencia)}
+                            </div>
+                        `;
+                    }
+                }
+
                 return `
                     <div class="col-12 col-md-6 col-xl-6">
-                        <div class="task-card-figma" style="background-color: #fafbfc;">
+                        <div class="task-card-figma" style="background-color: #fafbfc; border-left: 4px solid #10b981;">
                             <div>
                                 <div class="task-card-top">
-                                    <div>${tipoBadge}${badgeArquivo}</div>
+                                    <div class="d-flex flex-wrap gap-1">${tipoBadge}${badgeArquivo}</div>
                                     <span class="small fw-bold text-success">
                                         <i class="bi bi-check2-circle me-1"></i> Concluída
                                     </span>
                                 </div>
                                 <h6 class="task-card-title text-dark">${escapeText(t.titulo)}</h6>
                                 <p class="task-card-desc mb-2">${escapeText(t.descricao || '')}</p>
+                                ${resumoEvidencia}
                             </div>
-                            <div class="task-card-bottom">
-                                <span class="task-card-deadline">
-                                    <i class="bi bi-calendar-check"></i> Concluída em: ${formatDataConclusao}
+                            <div class="task-card-bottom mt-3">
+                                <span class="task-card-deadline text-success fw-semibold">
+                                    <i class="bi bi-calendar-check"></i> ${formatDataConclusao}
                                 </span>
-                                <button type="button" class="btn btn-link text-primary text-decoration-none fw-semibold small p-0" onclick="visualizarEvidencia(${t.id})">
-                                    Ver evidência enviada
+                                <button type="button" class="btn btn-sm btn-outline-primary" style="border-radius: 8px;" onclick="visualizarEvidencia(${t.id})">
+                                    <i class="bi bi-eye me-1"></i> Ver detalhes completos
                                 </button>
                             </div>
                         </div>
@@ -370,15 +434,19 @@ function escapeText(text) {
         .replace(/'/g, '&#39;');
 }
 
-function formatarData(dataStr) {
+function formatarData(dataStr, formato = 'longo') {
     if (!dataStr) return '';
+    if (window.JanoComponents && window.JanoComponents.formatarData) {
+        return window.JanoComponents.formatarData(dataStr, formato);
+    }
     try {
-        const d = new Date(dataStr);
-        if (isNaN(d.getTime())) {
-            const partes = dataStr.split('T')[0].split('-');
-            return `${partes[2]}/${partes[1]}/${partes[0]}`;
+        const str = String(dataStr).trim();
+        if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+            const [ano, mes, dia] = str.split('-');
+            return `${dia}/${mes}/${ano}`;
         }
-        return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+        const d = new Date(dataStr);
+        return d.toLocaleDateString('pt-BR', { timeZone: 'UTC', day: '2-digit', month: 'short', year: 'numeric' });
     } catch {
         return dataStr;
     }

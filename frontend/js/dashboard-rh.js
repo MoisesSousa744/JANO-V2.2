@@ -230,7 +230,7 @@ async function carregarFuncionarios() {
     try {
         const res = await window.JanoAPI.Funcionarios.listar();
         if (!res.sucesso || !res.funcionarios) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-danger">Falha ao carregar colaboradores.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-danger">Falha ao carregar colaboradores.</td></tr>';
             return;
         }
 
@@ -238,7 +238,7 @@ async function carregarFuncionarios() {
         badgeTotal.textContent = funcionariosLista.length;
         renderizarTabela(funcionariosLista);
     } catch (error) {
-        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-danger">Erro: ${error.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-danger">Erro: ${error.message}</td></tr>`;
     }
 }
 
@@ -247,7 +247,7 @@ function renderizarTabela(lista) {
     const textoPaginacao = document.getElementById('texto-paginacao');
 
     if (lista.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">Nenhum funcionário encontrado.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">Nenhum funcionário encontrado.</td></tr>';
         if (textoPaginacao) textoPaginacao.textContent = 'Mostrando 0 funcionários';
         return;
     }
@@ -272,10 +272,35 @@ function renderizarTabela(lista) {
         const corBg = coresAvatares[index % coresAvatares.length];
         const corTxt = coresTextos[index % coresTextos.length];
 
-        const equipesDoFunc = Array.isArray(func.equipes) ? func.equipes : [];
-        const equipeBadge = equipesDoFunc.length > 0
-            ? `<div class="status-teams-wrap">${equipesDoFunc.map(eq => `<span class="badge-figma blue">${eq.nome}</span>`).join('')}</div>`
-            : `<span class="badge-figma neutral">Sem Equipe</span>`;
+        const progresso = typeof func.progresso_onboarding === 'number' ? func.progresso_onboarding : 0;
+        const totalTar = func.total_tarefas || 0;
+        const concTar = func.tarefas_concluidas || 0;
+        const isConcluido = func.onboarding_concluido || (totalTar > 0 && concTar === totalTar);
+
+        let progressoHtml = '';
+        if (totalTar === 0) {
+            progressoHtml = '<span class="badge-figma neutral">Sem tarefas</span>';
+        } else if (isConcluido) {
+            progressoHtml = `
+                <div>
+                    <span class="badge-figma green mb-1"><i class="bi bi-check2-all me-1"></i>Concluído</span>
+                    <small class="text-muted d-block" style="font-size: 0.72rem;">${concTar}/${totalTar} (100%)</small>
+                </div>
+            `;
+        } else {
+            progressoHtml = `
+                <div style="min-width: 130px;">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="badge-figma blue" style="font-size: 0.7rem;">Em andamento</span>
+                        <strong class="text-primary small">${progresso}%</strong>
+                    </div>
+                    <div class="progress" style="height: 5px; border-radius: 4px; background: #e2e8f0;">
+                        <div class="progress-bar bg-primary" role="progressbar" style="width: ${progresso}%; border-radius: 4px;"></div>
+                    </div>
+                    <small class="text-muted d-block mt-1" style="font-size: 0.7rem;">${concTar} de ${totalTar} concluídas</small>
+                </div>
+            `;
+        }
 
         return `
             <tr>
@@ -295,6 +320,9 @@ function renderizarTabela(lista) {
                 </td>
                 <td>
                     ${equipeBadge}
+                </td>
+                <td>
+                    ${progressoHtml}
                 </td>
                 <td>
                     <span class="text-muted">${func.email}</span>

@@ -68,6 +68,7 @@ async function login(req, res, next) {
                 : 'Login realizado com sucesso!',
             token,
             primeiroAcesso: Boolean(usuario.primeiro_acesso),
+            primeiro_acesso: Boolean(usuario.primeiro_acesso),
             redirecionarPara: destino,
             usuario: {
                 id: usuario.id,

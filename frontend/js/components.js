@@ -62,19 +62,26 @@ const JanoComponents = {
                                 <span>Minhas Tarefas</span>
                             </a>
                         </li>
+
+                        <li class="sidebar-nav-item ${activePage === 'perfil' ? 'active' : ''}">
+                            <a href="perfil.html">
+                                <i class="bi bi-person-circle"></i>
+                                <span>Meu Perfil</span>
+                            </a>
+                        </li>
                     </ul>
                 </div>
 
                 <!-- Rodapé da Sidebar com Usuário e Logout -->
                 <div class="sidebar-bottom">
                     <div class="sidebar-user-pill">
-                        <div class="sidebar-user-info">
+                        <a href="perfil.html" class="sidebar-user-info text-decoration-none" title="Ver meu perfil">
                             <div class="sidebar-avatar">${iniciais}</div>
                             <div style="min-width: 0;">
                                 <div class="sidebar-user-name">${user.nome}</div>
                                 <div class="sidebar-user-email">${user.email}</div>
                             </div>
-                        </div>
+                        </a>
                         <button class="btn-sidebar-logout" onclick="window.JanoAuth.logout()" title="Encerrar sessão">
                             <i class="bi bi-box-arrow-right"></i>
                         </button>
@@ -84,6 +91,42 @@ const JanoComponents = {
         `;
 
         container.innerHTML = html;
+    },
+
+    formatarData(dataStr, formato = 'longo') {
+        if (!dataStr) return '';
+        try {
+            const str = String(dataStr).trim();
+            // Se for data pura YYYY-MM-DD
+            if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+                const [ano, mes, dia] = str.split('-');
+                if (formato === 'curto') {
+                    return `${dia}/${mes}/${ano}`;
+                }
+                const d = new Date(`${str}T12:00:00Z`);
+                return d.toLocaleDateString('pt-BR', { timeZone: 'UTC', day: '2-digit', month: 'short', year: 'numeric' });
+            }
+
+            // Se for string ISO com timestamp ou objeto Date
+            const d = new Date(dataStr);
+            if (isNaN(d.getTime())) return str;
+
+            // Se apenas data (meia-noite UTC), usa UTC para não retroceder 1 dia em UTC-3
+            if (str.includes('T00:00:00') || !str.includes(':')) {
+                if (formato === 'curto') {
+                    return d.toLocaleDateString('pt-BR', { timeZone: 'UTC', day: '2-digit', month: '2-digit', year: 'numeric' });
+                }
+                return d.toLocaleDateString('pt-BR', { timeZone: 'UTC', day: '2-digit', month: 'short', year: 'numeric' });
+            }
+
+            // Data com horário real de conclusão ou envio
+            if (formato === 'com-hora') {
+                return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+            }
+            return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+        } catch {
+            return String(dataStr);
+        }
     },
 
     showToast(mensagem, tipo = 'info') {

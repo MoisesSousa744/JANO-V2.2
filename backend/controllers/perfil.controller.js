@@ -29,6 +29,19 @@ async function obterPerfil(req, res, next) {
 
         const usuario = rows[0];
 
+        // Busca todas as equipes às quais o colaborador está vinculado
+        const [equipesVinculadas] = await db.query(
+            `SELECT e.id, e.nome, e.departamento
+             FROM funcionario_equipe fe
+             JOIN equipes e ON fe.id_equipe = e.id
+             WHERE fe.id_funcionario = ?`,
+            [usuarioId]
+        );
+
+        let nomesEquipes = (equipesVinculadas && equipesVinculadas.length > 0)
+            ? equipesVinculadas.map(eq => eq.nome).join(', ')
+            : (usuario.nome_equipe || 'Sem equipe associada');
+
         res.status(200).json({
             sucesso: true,
             usuario: {
@@ -40,7 +53,8 @@ async function obterPerfil(req, res, next) {
                 telefone: usuario.telefone || 'Não informado',
                 perfil: usuario.perfil,
                 id_equipe: usuario.id_equipe,
-                nome_equipe: usuario.nome_equipe || 'Sem equipe associada',
+                nome_equipe: nomesEquipes,
+                equipes: equipesVinculadas || [],
                 departamento_equipe: usuario.departamento_equipe || null,
                 primeiro_acesso: Boolean(usuario.primeiro_acesso),
                 data_criacao: usuario.data_criacao

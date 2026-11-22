@@ -117,10 +117,14 @@
                 </div>
             </div>
 
-            <!-- Card Inferior: Alocação de Funcionários (Figura 11 do Figma) -->
-            <div class="card-figma">
-                <h5 class="card-figma-title">Alocação de Funcionários</h5>
-                <p class="card-figma-subtitle">Gerencie em quais equipes os novos contratados estão alocados para a integração.</p>
+            <!-- Card Médio: Alocação e Progresso de Funcionários -->
+            <div class="card-figma mb-4">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                    <div>
+                        <h5 class="card-figma-title mb-0">Alocação e Progresso de Integração</h5>
+                        <p class="card-figma-subtitle mb-0">Gerencie a alocação em equipes e acompanhe a conclusão do onboarding de cada talento.</p>
+                    </div>
+                </div>
 
                 <div class="table-responsive">
                     <table class="table-figma">
@@ -128,13 +132,14 @@
                             <tr>
                                 <th>Nome</th>
                                 <th>E-mail</th>
-                                <th>Status</th>
-                                <th style="width: 340px;">Atribuir Equipes</th>
+                                <th>Equipes</th>
+                                <th>Progresso Onboarding</th>
+                                <th style="width: 320px;">Atribuir Equipes</th>
                             </tr>
                         </thead>
                         <tbody id="tabela-alocacao-body">
                             <tr>
-                                <td colspan="4" class="text-center py-4 text-muted">
+                                <td colspan="5" class="text-center py-4 text-muted">
                                     <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
                                     Carregando funcionários e equipes...
                                 </td>
@@ -143,7 +148,82 @@
                     </table>
                 </div>
             </div>
+
+            <!-- Card Inferior: Histórico de Atividades Concluídas e Entregas (Item 4) -->
+            <div class="card-figma">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                    <div>
+                        <h5 class="card-figma-title mb-0">Atividades Concluídas / Entregas da Equipe</h5>
+                        <p class="card-figma-subtitle mb-0">Acompanhe as tarefas já finalizadas e inspecione as evidências e materiais enviados pelos colaboradores.</p>
+                    </div>
+                    <span class="badge bg-success py-2 px-3 fw-bold" id="badge-total-entregas-gestor">0 entregas</span>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table-figma">
+                        <thead>
+                            <tr>
+                                <th>Colaborador / Destinatário</th>
+                                <th>Tarefa de Integração</th>
+                                <th>Data de Conclusão</th>
+                                <th>Status</th>
+                                <th>Evidência Enviada</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabela-entregas-gestor-body">
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-muted">
+                                    <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                                    Carregando entregas dos colaboradores...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </main>
+    </div>
+
+    <!-- MODAL: Ver Evidência da Tarefa (Gestor) -->
+    <div class="modal fade" id="modal-ver-evidencia-gestor" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0" style="border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.12);">
+                <div class="modal-header border-bottom p-4">
+                    <div>
+                        <span class="badge-figma green mb-1"><i class="bi bi-check-circle-fill me-1"></i>Evidência de Conclusão</span>
+                        <h5 class="modal-title fw-bold text-dark" id="gestor-evidencia-tarefa-titulo">Título da Tarefa</h5>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3 p-3 rounded" style="background: #f8fafc; border: 1px solid #e2e8f0;">
+                        <div class="row g-2 small">
+                            <div class="col-sm-6">
+                                <span class="text-muted d-block">Colaborador:</span>
+                                <strong class="text-dark" id="gestor-evidencia-colaborador">-</strong>
+                            </div>
+                            <div class="col-sm-6">
+                                <span class="text-muted d-block">Data da Entrega:</span>
+                                <strong class="text-dark" id="gestor-evidencia-data">-</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label-figma text-muted">Descrição da Evidência / Link:</label>
+                        <div class="p-3 rounded border bg-white" id="gestor-evidencia-texto" style="min-height: 60px;">
+                            -
+                        </div>
+                    </div>
+
+                    <!-- Container para PDF ou Player de Vídeo -->
+                    <div id="gestor-evidencia-midia-box" class="d-none"></div>
+                </div>
+                <div class="modal-footer border-top p-3 bg-light" style="border-bottom-left-radius: 16px; border-bottom-right-radius: 16px;">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius: 10px;">Fechar</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Bootstrap 5 Bundle JS -->

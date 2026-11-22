@@ -9,10 +9,14 @@ const { getEmailConfigStatus } = require('./utils/email.service');
 
 // Importação das rotas
 const authRoutes = require('./routes/auth.routes');
+const authController = require('./controllers/auth.controller');
 const funcionariosRoutes = require('./routes/funcionarios.routes');
 const equipesRoutes = require('./routes/equipes.routes');
 const tarefasRoutes = require('./routes/tarefas.routes');
 const dashboardRoutes = require('./routes/dashboard.routes');
+const perfilRoutes = require('./routes/perfil.routes');
+const gestorRoutes = require('./routes/gestor.routes');
+const { autenticarToken } = require('./middlewares/auth.middleware');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -43,12 +47,18 @@ app.get('/api/health', (req, res) => {
     });
 });
 
+// Aliases diretos para compatibilidade com especificações (/api/login e /api/alterar-senha)
+app.post('/api/login', authController.login);
+app.post('/api/alterar-senha', autenticarToken, authController.alterarSenha);
+
 // Rotas da API REST
 app.use('/api/auth', authRoutes);
 app.use('/api/funcionarios', funcionariosRoutes);
 app.use('/api/equipes', equipesRoutes);
 app.use('/api/tarefas', tarefasRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/perfil', perfilRoutes);
+app.use('/api/gestor', gestorRoutes);
 
 // Fallback de rota para frontend SPA/estático se não for /api
 app.get('*', (req, res, next) => {

@@ -22,20 +22,24 @@ function autenticarToken(req, res, next) {
         req.usuario = decoded;
 
         // Regra de Negócio RN03: Bloquear acesso se for primeiro acesso e não for troca de senha
-        const rotaAtual = req.originalUrl || req.url;
+        const rotaAtual = (req.originalUrl || req.url || '').split('?')[0];
         const rotasPermitidasPrimeiroAcesso = [
             '/api/auth/alterar-senha',
+            '/api/alterar-senha',
+            '/api/perfil/senha',
             '/api/auth/me',
             '/api/auth/logout'
         ];
 
-        const isRotaPermitida = rotasPermitidasPrimeiroAcesso.some(rota => rotaAtual.startsWith(rota));
+        const isRotaPermitida = rotasPermitidasPrimeiroAcesso.some(rota => rotaAtual === rota || rotaAtual.startsWith(rota));
 
         if (req.usuario.primeiro_acesso && !isRotaPermitida) {
             return res.status(403).json({
                 sucesso: false,
+                primeiro_acesso: true,
+                primeiroAcesso: true,
                 codigo: 'PRIMEIRO_ACESSO_OBRIGATORIO',
-                mensagem: 'Primeiro acesso detectado. É obrigatório alterar a senha temporária antes de navegar no sistema.',
+                mensagem: 'Primeiro acesso detectado. É obrigatório alterar sua senha temporária antes de navegar no sistema.',
                 redirecionarPara: '/alterar-senha.html'
             });
         }

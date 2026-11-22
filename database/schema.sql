@@ -180,7 +180,9 @@ VALUES
 -- Inserção de Tarefas Iniciais de Onboarding
 INSERT INTO tarefas (titulo, descricao, prazo, status, evidencia, id_funcionario, id_equipe, id_criador, data_criacao)
 VALUES 
+('🏁 Mini-Treinamento: Boas-vindas ao JANO e Primeiros Passos', 'Treinamento obrigatório de integração: conheça a plataforma JANO, aprenda a consultar materiais de apoio e como registrar suas entregas com texto, PDF ou vídeo.', DATE_ADD(CURDATE(), INTERVAL 2 DAY), 'Pendente', NULL, 3, NULL, 2, NOW()),
 ('Configurar Ambiente de Desenvolvimento', 'Clonar repositórios git, instalar Node.js 20+, configurar chaves SSH e rodar o projeto localmente.', DATE_ADD(CURDATE(), INTERVAL 3 DAY), 'Pendente', NULL, 3, 1, 2, NOW()),
 ('Leitura do Manual de Conduta e Cultura', 'Ler o documento de Cultura da Empresa e preencher o quiz de conformidade no portal interno.', DATE_ADD(CURDATE(), INTERVAL 5 DAY), 'Pendente', NULL, 3, NULL, 2, NOW()),
 ('Apresentação com o Time de Engenharia', 'Reunião de alinhamento 1:1 com o gestor e equipe de desenvolvimento via Google Meet.', DATE_SUB(CURDATE(), INTERVAL 1 DAY), 'Concluida', 'Reunião realizada com sucesso em 16/11/2026. Ata de reunião no link https://meet.google.com/abc-defg-hij', 4, 1, 2, DATE_SUB(NOW(), INTERVAL 2 DAY)),
 ('Treinamento de Segurança da Informação (LGPD)', 'Assistir às 4 videoaulas obrigatórias e submeter o certificado de conclusão.', DATE_ADD(CURDATE(), INTERVAL 7 DAY), 'Pendente', NULL, 4, 2, 2, NOW());
+

@@ -155,10 +155,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 });
 
+let entregasGlobais = [];
+
 async function carregarDadosCompletos() {
     await carregarEquipes();
     await carregarFuncionarios();
     renderizarTabelaAlocacao();
+    await carregarEntregasGestor();
 }
 
 async function carregarEquipes() {
@@ -196,7 +199,7 @@ async function carregarFuncionarios() {
 function renderizarTabelaAlocacao() {
     const tbody = document.getElementById('tabela-alocacao-body');
     if (!funcionariosGlobais.length) {
-        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">Nenhum funcionário encontrado.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">Nenhum funcionário encontrado.</td></tr>';
         return;
     }
 
@@ -220,6 +223,37 @@ function renderizarTabelaAlocacao() {
         const statusBadge = equipesDoFunc.length > 0
             ? `<div class="status-teams-wrap">${equipesDoFunc.map(eq => `<span class="badge-figma green">${eq.nome}</span>`).join('')}</div>`
             : `<span class="badge-figma orange">Sem Equipe</span>`;
+
+        // Coluna de Progresso de Onboarding (Item 5)
+        const progresso = typeof func.progresso_onboarding === 'number' ? func.progresso_onboarding : 0;
+        const totalTar = func.total_tarefas || 0;
+        const concTar = func.tarefas_concluidas || 0;
+        const isConcluido = func.onboarding_concluido || (totalTar > 0 && concTar === totalTar);
+
+        let progressoHtml = '';
+        if (totalTar === 0) {
+            progressoHtml = '<span class="badge-figma neutral">Sem tarefas</span>';
+        } else if (isConcluido) {
+            progressoHtml = `
+                <div>
+                    <span class="badge-figma green mb-1"><i class="bi bi-check2-all me-1"></i>Concluído (100%)</span>
+                    <small class="text-muted d-block" style="font-size: 0.75rem;">${concTar} de ${totalTar} tarefas</small>
+                </div>
+            `;
+        } else {
+            progressoHtml = `
+                <div style="min-width: 140px;">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="badge-figma blue" style="font-size: 0.72rem;">Em andamento</span>
+                        <strong class="text-primary small">${progresso}%</strong>
+                    </div>
+                    <div class="progress" style="height: 6px; border-radius: 4px; background: #e2e8f0;">
+                        <div class="progress-bar bg-primary" role="progressbar" style="width: ${progresso}%; border-radius: 4px;"></div>
+                    </div>
+                    <small class="text-muted d-block mt-1" style="font-size: 0.72rem;">${concTar} de ${totalTar} concluídas</small>
+                </div>
+            `;
+        }
 
         // Monta checkboxes para marcar/desmarcar múltiplas equipes
         const checkboxesEquipes = equipesGlobais.length > 0
@@ -247,7 +281,10 @@ function renderizarTabelaAlocacao() {
                         <div style="width: 38px; height: 38px; border-radius: 50%; background: ${corBg}; color: ${corTxt}; font-weight: 700; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                             ${iniciais}
                         </div>
-                        <div class="fw-bold text-dark">${func.nome}</div>
+                        <div>
+                            <div class="fw-bold text-dark">${func.nome}</div>
+                            <small class="text-muted">${func.cargo}</small>
+                        </div>
                     </div>
                 </td>
                 <td>
@@ -257,12 +294,145 @@ function renderizarTabelaAlocacao() {
                     ${statusBadge}
                 </td>
                 <td>
+                    ${progressoHtml}
+                </td>
+                <td>
                     ${checkboxesEquipes}
                 </td>
             </tr>
         `;
     }).join('');
 }
+
+async function carregarEntregasGestor() {
+    const tbody = document.getElementById('tabela-entregas-gestor-body');
+    const badgeTotal = document.getElementById('badge-total-entregas-gestor');
+    if (!tbody) return;
+
+    try {
+        const res = await window.JanoAPI.Gestor.listarTarefas();
+        if (!res.sucesso || !res.tarefas) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">Nenhuma atividade encontrada.</td></tr>';
+            return;
+        }
+
+        const concluidas = res.concluidas || res.tarefas.filter(t => t.status === 'Concluida');
+        entregasGlobais = concluidas;
+
+        if (badgeTotal) {
+            badgeTotal.textContent = `${concluidas.length} entrega${concluidas.length === 1 ? '' : 's'}`;
+        }
+
+        if (concluidas.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted"><i class="bi bi-inbox me-1"></i>Nenhuma entrega registrada pelos colaboradores até o momento.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = concluidas.map(t => {
+            const dest = t.funcionario_nome || (t.equipe_nome ? `Equipe: ${t.equipe_nome}` : 'Geral');
+            const cargo = t.funcionario_cargo ? `<small class="text-muted d-block">${escapeText(t.funcionario_cargo)}</small>` : '';
+            const dataFmt = t.data_conclusao ? formatarData(t.data_conclusao, 'com-hora') : 'Data não registrada';
+
+            const temArquivo = Boolean(t.evidencia_arquivo_url);
+            const isVideo = temArquivo && isVideoMime(t.evidencia_arquivo_tipo, t.evidencia_arquivo_url);
+
+            const badgeMidia = temArquivo
+                ? `<span class="badge-figma purple ms-1"><i class="bi ${isVideo ? 'bi-camera-video' : 'bi-file-earmark-pdf'} me-1"></i>${isVideo ? 'Vídeo' : 'PDF'}</span>`
+                : '';
+
+            return `
+                <tr>
+                    <td>
+                        <strong class="text-dark">${escapeText(dest)}</strong>
+                        ${cargo}
+                    </td>
+                    <td>
+                        <div class="fw-semibold text-dark">${escapeText(t.titulo)}</div>
+                        <small class="text-muted text-truncate d-block" style="max-width: 280px;">${escapeText(t.descricao || '')}</small>
+                    </td>
+                    <td>
+                        <span class="text-success fw-medium small">
+                            <i class="bi bi-calendar-check me-1"></i>${dataFmt}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge-figma green">
+                            <i class="bi bi-check-circle-fill me-1"></i>Concluída
+                        </span>
+                    </td>
+                    <td>
+                        <button type="button" class="btn btn-sm btn-outline-primary" style="border-radius: 8px;" onclick="abrirModalEvidenciaGestor(${t.id})">
+                            <i class="bi bi-eye me-1"></i>Ver Evidência${badgeMidia}
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    } catch (err) {
+        console.error('Erro ao carregar entregas:', err);
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-danger">Erro ao carregar entregas: ${err.message}</td></tr>`;
+    }
+}
+
+window.abrirModalEvidenciaGestor = function(idTarefa) {
+    const tarefa = entregasGlobais.find(t => t.id === idTarefa);
+    if (!tarefa) return;
+
+    document.getElementById('gestor-evidencia-tarefa-titulo').textContent = tarefa.titulo;
+    document.getElementById('gestor-evidencia-colaborador').textContent = tarefa.funcionario_nome || tarefa.equipe_nome || 'Colaborador';
+    document.getElementById('gestor-evidencia-data').textContent = tarefa.data_conclusao ? formatarData(tarefa.data_conclusao, 'com-hora') : 'Data não informada';
+
+    const textoBox = document.getElementById('gestor-evidencia-texto');
+    if (tarefa.evidencia && (tarefa.evidencia.startsWith('http://') || tarefa.evidencia.startsWith('https://'))) {
+        const link = escapeText(tarefa.evidencia);
+        textoBox.innerHTML = `<a href="${link}" target="_blank" rel="noopener noreferrer" class="text-primary text-break fw-semibold"><i class="bi bi-box-arrow-up-right me-1"></i>${link}</a>`;
+    } else {
+        textoBox.textContent = tarefa.evidencia || 'Nenhum texto de evidência fornecido.';
+    }
+
+    const midiaBox = document.getElementById('gestor-evidencia-midia-box');
+    if (tarefa.evidencia_arquivo_url) {
+        const urlCompleta = window.JanoAPI.resolveFileUrl(tarefa.evidencia_arquivo_url);
+        const isVideo = isVideoMime(tarefa.evidencia_arquivo_tipo, tarefa.evidencia_arquivo_url);
+        const nomeArquivo = escapeText(tarefa.evidencia_arquivo_nome || (isVideo ? 'Vídeo de Comprovação' : 'Documento PDF'));
+
+        midiaBox.classList.remove('d-none');
+        if (isVideo) {
+            midiaBox.innerHTML = `
+                <div class="mt-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <strong class="small text-dark"><i class="bi bi-camera-video me-1 text-primary"></i>${nomeArquivo}</strong>
+                        <a href="${urlCompleta}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-box-arrow-up-right me-1"></i>Abrir em nova aba
+                        </a>
+                    </div>
+                    <video controls style="width: 100%; max-height: 400px; border-radius: 10px; background: #000;">
+                        <source src="${urlCompleta}" type="${escapeText(tarefa.evidencia_arquivo_tipo || 'video/mp4')}">
+                        Seu navegador não suporta reprodução de vídeo.
+                    </video>
+                </div>
+            `;
+        } else {
+            midiaBox.innerHTML = `
+                <div class="mt-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <strong class="small text-dark"><i class="bi bi-file-earmark-pdf me-1 text-danger"></i>${nomeArquivo}</strong>
+                        <a href="${urlCompleta}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-box-arrow-up-right me-1"></i>Abrir PDF em nova aba
+                        </a>
+                    </div>
+                    <iframe src="${urlCompleta}" style="width: 100%; height: 420px; border: 1px solid #e2e8f0; border-radius: 10px;"></iframe>
+                </div>
+            `;
+        }
+    } else {
+        midiaBox.classList.add('d-none');
+        midiaBox.innerHTML = '';
+    }
+
+    const modal = new bootstrap.Modal(document.getElementById('modal-ver-evidencia-gestor'));
+    modal.show();
+};
 
 window.alternarEquipeFuncionario = async function(idFuncionario, idEquipe, checkboxEl) {
     const marcado = checkboxEl.checked;
@@ -290,3 +460,35 @@ window.alternarEquipeFuncionario = async function(idFuncionario, idEquipe, check
         checkboxEl.disabled = false;
     }
 };
+
+function isVideoMime(tipo, url) {
+    if (tipo && String(tipo).toLowerCase().startsWith('video/')) return true;
+    return /\.(mp4|webm|ogg|mov|avi|mkv)(\?|$)/i.test(String(url || ''));
+}
+
+function escapeText(text) {
+    return String(text || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function formatarData(dataStr, formato = 'longo') {
+    if (!dataStr) return '';
+    if (window.JanoComponents && window.JanoComponents.formatarData) {
+        return window.JanoComponents.formatarData(dataStr, formato);
+    }
+    try {
+        const str = String(dataStr).trim();
+        if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+            const [ano, mes, dia] = str.split('-');
+            return `${dia}/${mes}/${ano}`;
+        }
+        const d = new Date(dataStr);
+        return d.toLocaleDateString('pt-BR', { timeZone: 'UTC', day: '2-digit', month: 'short', year: 'numeric' });
+    } catch {
+        return dataStr;
+    }
+}

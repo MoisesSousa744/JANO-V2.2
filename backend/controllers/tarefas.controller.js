@@ -79,7 +79,7 @@ async function listarTarefas(req, res, next) {
         // Perfil Funcionário OU visualização "Minhas Tarefas" de RH/Gestor:
         // visualiza exclusivamente as tarefas atribuídas diretamente ao usuário logado ou às suas equipes
         if (usuario.perfil === 'Funcionario' || somenteMinhas) {
-            const [tarefas] = await db.query(
+            let [tarefas] = await db.query(
                 `SELECT t.id, t.titulo, t.descricao, t.prazo, t.status, t.evidencia,
                         t.anexo_url, t.anexo_nome, t.anexo_tipo,
                         t.evidencia_arquivo_url, t.evidencia_arquivo_nome, t.evidencia_arquivo_tipo,
@@ -96,14 +96,60 @@ async function listarTarefas(req, res, next) {
                 [usuario.id, usuario.id]
             );
 
+            // Se for funcionário e ainda não tiver nenhuma tarefa ou não tiver o mini-treinamento inicial pré-programado
+            const temTreinamento = tarefas.some(t => t.titulo.toLowerCase().includes('mini-treinamento') || t.titulo.toLowerCase().includes('treinamento inicial'));
+            if (!temTreinamento && usuario.perfil === 'Funcionario') {
+                try {
+                    const prazoInicial = new Date();
+                    prazoInicial.setDate(prazoInicial.getDate() + 3);
+                    const prazoStr = prazoInicial.toISOString().split('T')[0];
+
+                    await db.query(
+                        `INSERT INTO tarefas (titulo, descricao, prazo, status, id_funcionario, id_equipe, id_criador, data_criacao)
+                         VALUES (?, ?, ?, 'Pendente', ?, NULL, NULL, NOW())`,
+                        [
+                            '🏁 Mini-Treinamento: Boas-vindas ao JANO e Primeiros Passos',
+                            'Treinamento prático de integração obrigatório: conheça as funcionalidades da plataforma JANO, acesse materiais de apoio e conclua esta tarefa enviando uma evidência para liberar suas atividades diárias.',
+                            prazoStr,
+                            usuario.id
+                        ]
+                    );
+
+                    // Recarrega tarefas atualizadas
+                    const [tarefasAtualizadas] = await db.query(
+                        `SELECT t.id, t.titulo, t.descricao, t.prazo, t.status, t.evidencia,
+                                t.anexo_url, t.anexo_nome, t.anexo_tipo,
+                                t.evidencia_arquivo_url, t.evidencia_arquivo_nome, t.evidencia_arquivo_tipo,
+                                t.data_conclusao, t.id_funcionario, t.id_equipe, t.id_criador, t.data_criacao,
+                                e.nome as equipe_nome, f_criador.nome as criador_nome
+                         FROM tarefas t
+                         LEFT JOIN equipes e ON t.id_equipe = e.id
+                         LEFT JOIN funcionarios f_criador ON t.id_criador = f_criador.id
+                         WHERE t.id_funcionario = ? 
+                            OR (t.id_funcionario IS NULL AND t.id_equipe IN (
+                                SELECT id_equipe FROM funcionario_equipe WHERE id_funcionario = ?
+                            ))
+                         ORDER BY t.status DESC, t.prazo ASC`,
+                        [usuario.id, usuario.id]
+                    );
+                    tarefas = tarefasAtualizadas;
+                } catch (errAuto) {
+                    console.warn('Aviso ao auto-atribuir mini-treinamento inicial:', errAuto.message);
+                }
+            }
+
             const pendentes = tarefas.filter(t => t.status === 'Pendente');
             const concluidas = tarefas.filter(t => t.status === 'Concluida');
+            const total = tarefas.length;
+            const progresso = total > 0 ? Math.round((concluidas.length / total) * 100) : 0;
 
             return res.status(200).json({
                 sucesso: true,
-                total: tarefas.length,
+                total,
                 totalPendentes: pendentes.length,
                 totalConcluidas: concluidas.length,
+                progresso,
+                onboardingConcluido: total > 0 && concluidas.length === total,
                 pendentes,
                 concluidas,
                 todas: tarefas
@@ -239,8 +285,67 @@ async function concluirTarefa(req, res, next) {
     }
 }
 
+async function listarTarefasGestor(req, res, next) {
+    try {
+        const usuario = req.usuario;
+        let querySql = `
+            SELECT t.id, t.titulo, t.descricao, t.prazo, t.status, t.evidencia,
+                   t.anexo_url, t.anexo_nome, t.anexo_tipo,
+                   t.evidencia_arquivo_url, t.evidencia_arquivo_nome, t.evidencia_arquivo_tipo,
+                   t.data_conclusao, t.id_funcionario, t.id_equipe, t.id_criador, t.data_criacao,
+                   f.nome as funcionario_nome, f.cargo as funcionario_cargo, f.email as funcionario_email,
+                   e.nome as equipe_nome,
+                   fc.nome as criador_nome
+            FROM tarefas t
+            LEFT JOIN funcionarios f ON t.id_funcionario = f.id
+            LEFT JOIN equipes e ON t.id_equipe = e.id
+            LEFT JOIN funcionarios fc ON t.id_criador = fc.id
+        `;
+        let params = [];
+
+        // Se for Gestor, filtra apenas suas equipes gerenciadas e colaboradores vinculados
+        if (usuario.perfil === 'Gestor') {
+            querySql += `
+                WHERE t.id_criador = ?
+                   OR t.id_equipe IN (SELECT id FROM equipes WHERE id_gestor = ?)
+                   OR t.id_funcionario IN (
+                       SELECT id_funcionario FROM funcionario_equipe WHERE id_equipe IN (
+                           SELECT id FROM equipes WHERE id_gestor = ?
+                       )
+                   )
+                   OR t.id_funcionario IN (
+                       SELECT id FROM funcionarios WHERE id_equipe IN (
+                           SELECT id FROM equipes WHERE id_gestor = ?
+                       )
+                   )
+            `;
+            params.push(usuario.id, usuario.id, usuario.id, usuario.id);
+        }
+
+        querySql += ' ORDER BY t.status ASC, t.id DESC';
+
+        const [tarefas] = await db.query(querySql, params);
+
+        const pendentes = tarefas.filter(t => t.status === 'Pendente');
+        const concluidas = tarefas.filter(t => t.status === 'Concluida');
+
+        res.status(200).json({
+            sucesso: true,
+            total: tarefas.length,
+            totalPendentes: pendentes.length,
+            totalConcluidas: concluidas.length,
+            tarefas,
+            pendentes,
+            concluidas
+        });
+    } catch (error) {
+        next(error);
+    }
+}
+
 module.exports = {
     criarTarefa,
     listarTarefas,
-    concluirTarefa
+    concluirTarefa,
+    listarTarefasGestor
 };

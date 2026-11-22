@@ -133,6 +133,28 @@ async function cadastrarFuncionario(req, res, next) {
         const nomeLimpo = nome.trim();
         const cargoLimpo = cargo.trim();
 
+        // Tarefa pré-programada de onboarding: Mini-Treinamento Inicial para novos colaboradores
+        if (perfil === 'Funcionario') {
+            try {
+                const prazoTreinamento = new Date();
+                prazoTreinamento.setDate(prazoTreinamento.getDate() + 3);
+                const prazoStr = prazoTreinamento.toISOString().split('T')[0];
+
+                await db.query(
+                    `INSERT INTO tarefas (titulo, descricao, prazo, status, id_funcionario, id_equipe, id_criador, data_criacao)
+                     VALUES (?, ?, ?, 'Pendente', ?, NULL, NULL, NOW())`,
+                    [
+                        '🏁 Mini-Treinamento: Boas-vindas ao JANO e Primeiros Passos',
+                        'Treinamento prático de integração obrigatório: conheça as funcionalidades da plataforma JANO, acesse materiais de apoio e conclua esta tarefa enviando uma evidência para liberar suas atividades diárias.',
+                        prazoStr,
+                        novoId
+                    ]
+                );
+            } catch (errTask) {
+                console.warn('Aviso ao criar mini-treinamento inicial para o colaborador:', errTask.message);
+            }
+        }
+
         // RF03: Dispara o e-mail real (ou fallback simulado caso SMTP não esteja configurado/falhe)
         const emailStatus = await sendTemporaryCredentialsEmail({
             nome: nomeLimpo,
@@ -190,15 +212,25 @@ async function listarFuncionarios(req, res, next) {
                 .map(v => v.id_equipe);
 
             const idsUnicos = [...new Set(idsVinculados)];
+            if (func.id_equipe && !idsUnicos.includes(func.id_equipe)) {
+                idsUnicos.push(func.id_equipe);
+            }
+
             const equipesDoFunc = idsUnicos
                 .map(eqId => equipes.find(e => e.id === eqId))
                 .filter(Boolean)
                 .map(e => ({ id: e.id, nome: e.nome, departamento: e.departamento }));
 
-            const tarefasDoFunc = todasTarefas.filter(t => t.id_funcionario === func.id);
+            // Tarefas do funcionário: individuais + da(s) equipe(s) dele
+            const tarefasDoFunc = todasTarefas.filter(t => 
+                t.id_funcionario === func.id ||
+                (!t.id_funcionario && t.id_equipe && idsUnicos.includes(t.id_equipe))
+            );
+
             const concluidas = tarefasDoFunc.filter(t => t.status === 'Concluida').length;
             const total = tarefasDoFunc.length;
             const progresso = total > 0 ? Math.round((concluidas / total) * 100) : 0;
+            const concluido = total > 0 && concluidas === total;
 
             return {
                 ...func,
@@ -208,7 +240,9 @@ async function listarFuncionarios(req, res, next) {
                 equipe_nome: equipesDoFunc.length > 0 ? equipesDoFunc.map(e => e.nome).join(', ') : 'Sem Equipe',
                 total_tarefas: total,
                 tarefas_concluidas: concluidas,
-                progresso_onboarding: progresso
+                progresso_onboarding: progresso,
+                onboarding_concluido: concluido,
+                status_onboarding: concluido ? 'Concluído' : (total > 0 ? 'Em andamento' : 'Pendente')
             };
         });
 

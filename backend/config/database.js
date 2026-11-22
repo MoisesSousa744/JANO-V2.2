@@ -86,6 +86,19 @@ const memoryStore = {
     tarefas: [
         {
             id: 1,
+            titulo: '🏁 Mini-Treinamento: Boas-vindas ao JANO e Primeiros Passos',
+            descricao: 'Treinamento obrigatório de integração: conheça a plataforma JANO, aprenda a consultar materiais de apoio e como registrar suas entregas com texto, PDF ou vídeo.',
+            prazo: '2026-11-24',
+            status: 'Pendente',
+            evidencia: null,
+            data_conclusao: null,
+            id_funcionario: 3,
+            id_equipe: null,
+            id_criador: 2,
+            data_criacao: new Date('2026-11-12T09:30:00Z')
+        },
+        {
+            id: 2,
             titulo: 'Configurar Ambiente de Desenvolvimento',
             descricao: 'Clonar repositórios git, instalar Node.js 20+, configurar chaves SSH e rodar o projeto localmente.',
             prazo: '2026-11-25',
@@ -98,7 +111,7 @@ const memoryStore = {
             data_criacao: new Date('2026-11-12T10:00:00Z')
         },
         {
-            id: 2,
+            id: 3,
             titulo: 'Leitura do Manual de Conduta e Cultura',
             descricao: 'Ler o documento de Cultura da Empresa e preencher o formulário de conformidade no portal interno.',
             prazo: '2026-11-28',
@@ -111,7 +124,7 @@ const memoryStore = {
             data_criacao: new Date('2026-11-12T10:00:00Z')
         },
         {
-            id: 3,
+            id: 4,
             titulo: 'Apresentação com o Time de Engenharia',
             descricao: 'Reunião de alinhamento 1:1 com o gestor e equipe de desenvolvimento via Google Meet.',
             prazo: '2026-11-16',
@@ -124,7 +137,7 @@ const memoryStore = {
             data_criacao: new Date('2026-11-14T14:30:00Z')
         },
         {
-            id: 4,
+            id: 5,
             titulo: 'Treinamento de Segurança da Informação (LGPD)',
             descricao: 'Assistir às 4 videoaulas obrigatórias e submeter o certificado de conclusão.',
             prazo: '2026-11-30',
@@ -159,7 +172,7 @@ let nextIds = {
     funcionarios: 5,
     equipes: 3,
     funcionario_equipe: 4,
-    tarefas: 5,
+    tarefas: 6,
     projetos: 3
 };
 
@@ -174,17 +187,20 @@ async function initDatabase() {
             waitForConnections: true,
             connectionLimit: 10,
             queueLimit: 0,
-            connectTimeout: 2000
+            connectTimeout: 2000,
+            dateStrings: true,
+            timezone: '-03:00'
         });
 
         // Testa conexão
         const conn = await pool.getConnection();
         conn.release();
         console.log(' Conectado com sucesso ao banco de dados MySQL.');
+        await pool.query("SET time_zone = '-03:00'").catch(() => {});
         await garantirColunasAnexosTarefas();
         isUsingFallback = false;
     } catch (error) {
-        if (process.env.DB_FALLBACK_MEMORY === 'true') {
+        if (process.env.DB_FALLBACK_MEMORY === 'true' || process.env.NODE_ENV !== 'production' || !process.env.DB_FALLBACK_MEMORY) {
             console.warn(` Servidor MySQL offline ou não configurado (${error.code || error.message}). Modo FALLBACK EM MEMÓRIA ativado para desenvolvimento e testes!`);
             isUsingFallback = true;
         } else {
@@ -259,11 +275,19 @@ function executeFallbackQuery(sql, params) {
         return [[user ? { ...user } : undefined].filter(Boolean), []];
     }
 
-    // SELECT funcionarios BY id
-    if (lower.startsWith('select') && lower.includes('from funcionarios') && lower.includes('where id = ?')) {
+    // SELECT funcionarios BY id (ou Perfil com JOIN equipes)
+    if (lower.startsWith('select') && lower.includes('from funcionarios') && (lower.includes('where id = ?') || lower.includes('where f.id = ?'))) {
         const id = Number(params[0]);
         const user = memoryStore.funcionarios.find(f => f.id === id);
-        return [[user ? { ...user } : undefined].filter(Boolean), []];
+        if (user) {
+            const eq = memoryStore.equipes.find(e => e.id === user.id_equipe);
+            return [[{
+                ...user,
+                nome_equipe: eq ? eq.nome : null,
+                departamento_equipe: eq ? eq.departamento : null
+            }], []];
+        }
+        return [[], []];
     }
 
     // SELECT ALL funcionarios (RH)
@@ -307,6 +331,14 @@ function executeFallbackQuery(sql, params) {
             if (user) {
                 user.senha_hash = senha_hash;
                 user.primeiro_acesso = primeiro_acesso ? 1 : 0;
+            }
+            return [{ affectedRows: user ? 1 : 0 }, []];
+        }
+        if (lower.includes('senha_hash = ?') && lower.includes('where id = ?')) {
+            const [senha_hash, id] = params;
+            const user = memoryStore.funcionarios.find(f => f.id === Number(id));
+            if (user) {
+                user.senha_hash = senha_hash;
             }
             return [{ affectedRows: user ? 1 : 0 }, []];
         }

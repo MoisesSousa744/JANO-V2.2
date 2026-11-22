@@ -17,41 +17,89 @@
         <!-- Conteúdo Principal -->
         <main class="main-content-figma">
             <!-- Header do Figma (Figura 13) -->
-            <div class="header-page-figma mb-3">
+            <div class="header-page-figma mb-4">
                 <div>
                     <h1 class="header-title-figma">Minhas Tarefas de Integração</h1>
                     <p class="header-subtitle-figma">Complete as etapas do seu onboarding para garantir uma ótima integração na empresa.</p>
                 </div>
             </div>
 
-            <!-- Contadores em Pills do Figma -->
-            <div class="d-flex flex-wrap gap-2 mb-4">
-                <span class="badge-figma blue py-2 px-3 fw-bold" id="pill-total-tarefas">Total de tarefas: 0</span>
-                <span class="badge-figma red py-2 px-3 fw-bold" id="pill-pendentes">Pendentes: 0</span>
-                <span class="badge-figma green py-2 px-3 fw-bold" id="pill-concluidas">Concluídas: 0</span>
-            </div>
+            <!-- Card de Progresso do Onboarding -->
+            <div class="card-figma mb-4 p-4" style="background: linear-gradient(135deg, #ffffff 0%, #f8faff 100%); border: 1px solid #dbeafe;">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                    <div>
+                        <span class="badge-figma blue mb-1"><i class="bi bi-mortarboard-fill me-1"></i>Trilha de Onboarding</span>
+                        <h5 class="fw-bold text-dark mb-0">Progresso Geral de Integração</h5>
+                    </div>
+                    <div class="text-end">
+                        <span class="fs-4 fw-bold text-primary" id="onboarding-porcentagem">0%</span>
+                        <span class="small text-muted d-block" id="onboarding-contador-tarefas">0 de 0 tarefas concluídas</span>
+                    </div>
+                </div>
 
-            <!-- Seção 1: Pendentes de Entrega -->
-            <div class="mb-5">
-                <h4 class="fw-bold text-dark mb-3">
-                    Pendentes de Entrega <span class="text-danger small" id="count-pendentes-header">0</span>
-                </h4>
-                <div class="row g-4" id="container-tarefas-pendentes">
-                    <div class="col-12 text-center py-4 text-muted">
-                        <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
-                        Carregando tarefas...
+                <!-- Barra de Progresso Visual -->
+                <div class="progress mb-2" style="height: 14px; border-radius: 10px; background-color: #e2e8f0;">
+                    <div id="onboarding-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 0%; border-radius: 10px; transition: width 0.5s ease;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+
+                <!-- Banner Comemorativo (exibido apenas quando progresso atingir 100%) -->
+                <div id="banner-onboarding-concluido" class="alert alert-success d-none mb-0 mt-3 p-3 border-0" style="background: #ecfdf5; border-radius: 12px; color: #065f46;">
+                    <div class="d-flex align-items-center gap-3">
+                        <div style="font-size: 2rem; line-height: 1;">🎉</div>
+                        <div>
+                            <h6 class="fw-bold mb-1">Parabéns! Onboarding Concluído com Sucesso!</h6>
+                            <p class="small mb-0">Você completou todas as atividades do seu programa de integração e mini-treinamento inicial. Agora você está oficialmente pronto(a) para executar tarefas plenas na sua equipe!</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Banner Informativo do Mini-Treinamento (caso ainda pendente) -->
+                <div id="banner-mini-treinamento" class="alert alert-info d-none mb-0 mt-3 p-3 border-0" style="background: #eff6ff; border-radius: 12px; color: #1e40af;">
+                    <div class="d-flex align-items-center gap-3">
+                        <i class="bi bi-info-circle-fill fs-3 text-primary"></i>
+                        <div>
+                            <h6 class="fw-bold mb-1">🏁 Primeiro Passo Obrigatório: Mini-Treinamento</h6>
+                            <p class="small mb-0">Sua primeira tarefa pré-programada é um mini-treinamento para conhecer o sistema e aprender a registrar evidências. Conclua-a para liberar sua trilha!</p>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Seção 2: Já Realizadas -->
-            <div>
-                <h4 class="fw-bold text-dark mb-3">
-                    Já Realizadas <span class="text-success small" id="count-concluidas-header">0</span>
-                </h4>
-                <div class="row g-4" id="container-tarefas-concluidas">
-                    <div class="col-12 text-center py-4 text-muted">
-                        Carregando histórico...
+            <!-- Abas Navegáveis: Tarefas Pendentes vs Concluídas -->
+            <ul class="nav nav-pills mb-4 gap-2" id="onboarding-tabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="btn btn-outline-primary active fw-semibold" id="tab-pendentes" data-bs-toggle="pill" data-bs-target="#conteudo-pendentes" type="button" role="tab" style="border-radius: 10px; padding: 0.5rem 1.25rem;">
+                        <i class="bi bi-clock-history me-1"></i> Tarefas Pendentes
+                        <span class="badge bg-danger ms-1" id="pill-pendentes">0</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="btn btn-outline-success fw-semibold" id="tab-concluidas" data-bs-toggle="pill" data-bs-target="#conteudo-concluidas" type="button" role="tab" style="border-radius: 10px; padding: 0.5rem 1.25rem;">
+                        <i class="bi bi-check2-circle me-1"></i> Atividades Concluídas (Histórico)
+                        <span class="badge bg-success ms-1" id="pill-concluidas">0</span>
+                    </button>
+                </li>
+            </ul>
+
+            <!-- Conteúdo das Abas -->
+            <div class="tab-content" id="onboarding-tabs-content">
+                <!-- Aba 1: Tarefas Pendentes -->
+                <div class="tab-pane fade show active" id="conteudo-pendentes" role="tabpanel">
+                    <div class="row g-4" id="container-tarefas-pendentes">
+                        <div class="col-12 text-center py-4 text-muted">
+                            <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                            Carregando tarefas pendentes...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Aba 2: Atividades Concluídas -->
+                <div class="tab-pane fade" id="conteudo-concluidas" role="tabpanel">
+                    <div class="row g-4" id="container-tarefas-concluidas">
+                        <div class="col-12 text-center py-4 text-muted">
+                            <div class="spinner-border spinner-border-sm text-success me-2" role="status"></div>
+                            Carregando atividades concluídas...
+                        </div>
                     </div>
                 </div>
             </div>

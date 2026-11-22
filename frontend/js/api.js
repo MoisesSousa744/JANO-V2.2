@@ -46,7 +46,7 @@ async function apiRequest(endpoint, { method = 'GET', body = null, headers = {} 
         const data = await response.json();
 
         // Tratamento de Primeiro Acesso Obrigatório (RN03)
-        if (response.status === 403 && data.codigo === 'PRIMEIRO_ACESSO_OBRIGATORIO') {
+        if (response.status === 403 && (data.codigo === 'PRIMEIRO_ACESSO_OBRIGATORIO' || data.primeiro_acesso || data.primeiroAcesso)) {
             if (!window.location.pathname.includes('alterar-senha.html')) {
                 window.location.href = 'alterar-senha.html';
                 return;
@@ -118,6 +118,16 @@ const DashboardAPI = {
     getMetricasGestor: () => apiRequest('/dashboard/metricas-gestor')
 };
 
+const PerfilAPI = {
+    obter: () => apiRequest('/perfil'),
+    alterarSenha: (senhaAtual, novaSenha, confirmacaoSenha) => 
+        apiRequest('/perfil/senha', { method: 'PUT', body: { senhaAtual, novaSenha, confirmacaoSenha } })
+};
+
+const GestorAPI = {
+    listarTarefas: () => apiRequest('/gestor/tarefas')
+};
+
 function resolveFileUrl(url) {
     if (!url) return '';
     if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
@@ -162,5 +172,7 @@ window.JanoAPI = {
     Funcionarios: FuncionariosAPI,
     Equipes: EquipesAPI,
     Tarefas: TarefasAPI,
-    Dashboard: DashboardAPI
+    Dashboard: DashboardAPI,
+    Perfil: PerfilAPI,
+    Gestor: GestorAPI
 };
