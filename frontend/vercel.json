@@ -1,0 +1,21 @@
+{
+  "version": 2,
+  "cleanUrls": true,
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "https://jano-backend.onrender.com/api/$1"
+    },
+    {
+      "src": "/uploads/(.*)",
+      "dest": "https://jano-backend.onrender.com/uploads/$1"
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    }
+  ]
+}

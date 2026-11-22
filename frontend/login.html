@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JANO - Bem-vindo de volta</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="auth-split-wrapper">
+        <!-- Lado Esquerdo do Figma: Banner Corporativo -->
+        <div class="auth-split-left">
+            <div class="auth-split-brand">JANO</div>
+            <div class="auth-split-left-content">
+                <div class="auth-pill-tag">
+                    <span style="font-size: 1rem; line-height: 0;">•</span> TRABALHO CONECTADO
+                </div>
+                <h1 class="auth-split-title">
+                    Pessoas alinhadas.<br>Resultados extraordinários.
+                </h1>
+                <p class="auth-split-desc">
+                    Um espaço seguro e simples para sua equipe transformar colaboração em impacto.
+                </p>
+            </div>
+            
+        </div>
+
+        <!-- Lado Direito do Figma: Formulário de Login -->
+        <div class="auth-split-right">
+            <div class="auth-card-figma">
+                <!-- Logo JANO Figma -->
+                <div class="auth-logo-box">
+                    <div class="auth-logo-icon">J</div>
+                    <span class="auth-logo-text">JANO</span>
+                </div>
+
+                <h2 class="auth-header-title">Bem-vindo de volta</h2>
+                <p class="auth-header-subtitle">Entre com seus dados para continuar.</p>
+
+                <div id="login-alert" class="alert alert-danger d-none py-2 small mb-3" role="alert"></div>
+
+                <form id="form-login" novalidate>
+                    <div class="mb-3">
+                        <label for="email" class="form-label-figma">E-mail</label>
+                        <input type="email" class="input-figma" id="email" placeholder="nome@empresa.com" required autocomplete="username">
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="senha" class="form-label-figma">Senha</label>
+                        <div class="position-relative">
+                            <input type="password" class="input-figma" id="senha" placeholder="Digite sua senha" required autocomplete="current-password" style="padding-right: 42px;">
+                            <button type="button" id="btn-toggle-senha" class="btn position-absolute top-50 end-0 translate-middle-y text-muted border-0 bg-transparent pe-3" title="Mostrar/ocultar senha">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="btn-submit" class="btn-figma-primary">
+                        <span id="btn-text">Entrar</span>
+                        <div id="btn-spinner" class="spinner-border spinner-border-sm d-none" role="status"></div>
+                    </button>
+                </form>
+
+                <!-- Atalhos Rápidos para Teste da Banca -->
+                <div class="mt-4 pt-3 border-top text-center">
+                    <small class="text-muted fw-semibold d-block mb-2 text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.05em;">
+                        Atalhos de Teste para Avaliação
+                    </small>
+                    <div class="d-flex flex-wrap gap-1 justify-content-center">
+                        <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.75rem;" onclick="preencherCredenciais('rh@jano.com.br', 'Admin@123')">RH</button>
+                        <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.75rem;" onclick="preencherCredenciais('gestor@jano.com.br', 'Gestor@123')">Gestor</button>
+                        <button type="button" class="btn btn-sm btn-outline-warning py-0 px-2" style="font-size: 0.75rem;" onclick="preencherCredenciais('mariana.costa@jano.com.br', 'Temp@123')">1º Acesso</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size: 0.75rem;" onclick="preencherCredenciais('lucas.pereira@jano.com.br', 'Senha@123')">Funcionário</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="auth-footer-tag">
+                Acesso seguro • JANO
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 Bundle JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/components.js"></script>
+    <script src="js/login.js"></script>
+</body>
+</html>
