@@ -52,15 +52,18 @@ const JanoAuth = {
         const path = window.location.pathname;
         const pageName = path.split('/').pop() || 'index.html';
 
-        if (pageName === 'login.html') {
-            // Se já estiver logado e acessar login.html, redireciona para o destino
-            if (this.isAuthenticated()) {
-                const user = this.getUser();
-                if (user.primeiro_acesso) {
-                    window.location.href = 'alterar-senha.html';
-                } else {
-                    window.location.href = this.getDashboardUrl(user.perfil);
-                }
+        // Modo Preview para Figma Canvas / Showcase (permite visualização dos frames sem redirecionamento)
+        if (window.location.search.includes('preview=true') || window.__JANO_PREVIEW__ || (window.self !== window.top)) {
+            if (!this.getUser()) {
+                const previewUsers = {
+                    'dashboard-rh.html': { id: 1, nome: 'Ana Souza (RH Admin)', email: 'rh@jano.com.br', cargo: 'Analista de Recursos Humanos Sênior', perfil: 'RH', primeiro_acesso: false },
+                    'dashboard-gestor.html': { id: 2, nome: 'Carlos Alberto Gestor', email: 'gestor@jano.com.br', cargo: 'Gerente de Engenharia de Software', perfil: 'Gestor', primeiro_acesso: false },
+                    'dashboard-funcionario.html': { id: 3, nome: 'Mariana Costa', email: 'mariana.costa@jano.com.br', cargo: 'Desenvolvedora Full-Stack Júnior', perfil: 'Funcionario', primeiro_acesso: false },
+                    'perfil.html': { id: 3, nome: 'Mariana Costa', email: 'mariana.costa@jano.com.br', cargo: 'Desenvolvedora Full-Stack Júnior', perfil: 'Funcionario', primeiro_acesso: false }
+                };
+                const mock = previewUsers[pageName] || { id: 1, nome: 'Usuário Demonstração', email: 'demo@jano.com.br', perfil: 'Funcionario', primeiro_acesso: false };
+                localStorage.setItem(this.USER_KEY, JSON.stringify(mock));
+                localStorage.setItem(this.TOKEN_KEY, 'preview_token_jano_figma');
             }
             return;
         }
