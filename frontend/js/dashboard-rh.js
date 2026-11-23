@@ -270,7 +270,10 @@ function renderizarTabela(lista) {
             .toUpperCase();
 
         const corBg = coresAvatares[index % coresAvatares.length];
-        const corTxt = coresTextos[index % coresTextos.length];
+        const equipesDoFunc = Array.isArray(func.equipes) ? func.equipes : [];
+        const equipeBadge = equipesDoFunc.length > 0
+            ? `<div class="status-teams-wrap">${equipesDoFunc.map(eq => `<span class="badge-figma blue">${eq.nome}</span>`).join('')}</div>`
+            : `<span class="badge-figma neutral">Sem Equipe</span>`;
 
         const progresso = typeof func.progresso_onboarding === 'number' ? func.progresso_onboarding : 0;
         const totalTar = func.total_tarefas || 0;
