@@ -22,10 +22,12 @@
         document.addEventListener('DOMContentLoaded', () => {
             if (window.JanoAuth.isAuthenticated()) {
                 const user = window.JanoAuth.getUser();
-                if (user.primeiro_acesso) {
+                if (user && user.primeiro_acesso) {
                     window.location.href = 'alterar-senha.html';
-                } else {
+                } else if (user) {
                     window.location.href = window.JanoAuth.getDashboardUrl(user.perfil);
+                } else {
+                    window.location.href = 'login.html';
                 }
             } else {
                 window.location.href = 'login.html';

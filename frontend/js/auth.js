@@ -50,7 +50,9 @@ const JanoAuth = {
      */
     guardRoute(perfisPermitidos = []) {
         const path = window.location.pathname;
-        const pageName = path.split('/').pop() || 'index.html';
+        const pageName = (path.split('/').pop() || 'index.html').toLowerCase();
+        const isLoginPage = pageName === 'login.html' || pageName === 'login';
+        const isAlterarSenhaPage = pageName === 'alterar-senha.html' || pageName === 'alterar-senha';
 
         // Modo Preview para Figma Canvas / Showcase (permite visualização dos frames sem redirecionamento)
         if (window.location.search.includes('preview=true') || window.__JANO_PREVIEW__ || (window.self !== window.top)) {
@@ -68,7 +70,22 @@ const JanoAuth = {
             return;
         }
 
-        // Para qualquer outra página, exige autenticação
+        // Se estiver na tela de login:
+        if (isLoginPage) {
+            // Se já estiver autenticado, leva ao dashboard ou à troca de senha
+            if (this.isAuthenticated()) {
+                const user = this.getUser();
+                if (user && user.primeiro_acesso) {
+                    window.location.href = 'alterar-senha.html';
+                } else if (user) {
+                    window.location.href = this.getDashboardUrl(user.perfil);
+                }
+            }
+            // Se não autenticado, PERMANECE na tela de login sem recarregar
+            return;
+        }
+
+        // Para qualquer outra página protegida, se não estiver logado, redireciona ao login
         if (!this.isAuthenticated()) {
             window.location.href = 'login.html';
             return;
@@ -77,19 +94,19 @@ const JanoAuth = {
         const user = this.getUser();
 
         // Regra RN03: Se primeiro_acesso estiver pendente, força ir para alterar-senha.html
-        if (user.primeiro_acesso && pageName !== 'alterar-senha.html') {
+        if (user && user.primeiro_acesso && !isAlterarSenhaPage) {
             window.location.href = 'alterar-senha.html';
             return;
         }
 
         // Se já alterou a senha e tentar abrir alterar-senha.html, leva ao dashboard
-        if (!user.primeiro_acesso && pageName === 'alterar-senha.html') {
+        if (user && !user.primeiro_acesso && isAlterarSenhaPage) {
             window.location.href = this.getDashboardUrl(user.perfil);
             return;
         }
 
         // Validação de RBAC de Perfis
-        if (perfisPermitidos.length > 0 && !perfisPermitidos.includes(user.perfil)) {
+        if (perfisPermitidos.length > 0 && user && !perfisPermitidos.includes(user.perfil)) {
             alert(`Acesso não autorizado para o perfil ${user.perfil}. Você será redirecionado para o seu painel.`);
             window.location.href = this.getDashboardUrl(user.perfil);
         }

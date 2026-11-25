@@ -57,7 +57,9 @@ async function apiRequest(endpoint, { method = 'GET', body = null, headers = {} 
         if (response.status === 401 && !endpoint.includes('/auth/login')) {
             localStorage.removeItem('jano_token');
             localStorage.removeItem('jano_user');
-            window.location.href = 'login.html';
+            if (!window.location.pathname.toLowerCase().endsWith('login.html')) {
+                window.location.href = 'login.html';
+            }
             return;
         }
 
