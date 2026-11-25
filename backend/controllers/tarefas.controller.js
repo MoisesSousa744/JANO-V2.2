@@ -17,6 +17,41 @@ async function criarTarefa(req, res, next) {
             });
         }
 
+        // Validação da data / prazo: formato AAAA-MM-DD com ano estritamente de 4 dígitos
+        const prazoStr = String(prazo).trim().split('T')[0];
+        const dataRegex = /^\d{4}-\d{2}-\d{2}$/;
+
+        if (!dataRegex.test(prazoStr)) {
+            return res.status(400).json({
+                sucesso: false,
+                mensagem: 'Prazo inválido. A data deve estar no formato AAAA-MM-DD com ano de exatamente 4 dígitos.'
+            });
+        }
+
+        const [anoStr, mesStr, diaStr] = prazoStr.split('-');
+        const ano = parseInt(anoStr, 10);
+        const mes = parseInt(mesStr, 10);
+        const dia = parseInt(diaStr, 10);
+
+        if (ano < 1900 || ano > 2099) {
+            return res.status(400).json({
+                sucesso: false,
+                mensagem: 'Prazo inválido. O ano deve conter exatamente 4 dígitos e estar entre 1900 e 2099.'
+            });
+        }
+
+        const dataValida = new Date(ano, mes - 1, dia);
+        if (
+            dataValida.getFullYear() !== ano ||
+            dataValida.getMonth() !== mes - 1 ||
+            dataValida.getDate() !== dia
+        ) {
+            return res.status(400).json({
+                sucesso: false,
+                mensagem: 'Prazo inválido. Informe uma data válida do calendário.'
+            });
+        }
+
         if (!id_funcionario && !id_equipe) {
             return res.status(400).json({
                 sucesso: false,
@@ -39,7 +74,7 @@ async function criarTarefa(req, res, next) {
             [
                 titulo.trim(),
                 descricao ? descricao.trim() : null,
-                prazo,
+                prazoStr,
                 funcionarioId,
                 equipeId,
                 criadorId,
@@ -56,7 +91,7 @@ async function criarTarefa(req, res, next) {
                 id: resultado.insertId,
                 titulo: titulo.trim(),
                 descricao: descricao ? descricao.trim() : null,
-                prazo,
+                prazo: prazoStr,
                 status: 'Pendente',
                 id_funcionario: funcionarioId,
                 id_equipe: equipeId,

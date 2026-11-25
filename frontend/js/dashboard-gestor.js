@@ -101,6 +101,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(prazo)) {
+            alertEl.textContent = 'Prazo inválido. O ano deve conter exatamente 4 dígitos (AAAA-MM-DD).';
+            alertEl.classList.remove('d-none');
+            return;
+        }
+
+        const anoPrazo = parseInt(prazo.split('-')[0], 10);
+        if (anoPrazo < 1900 || anoPrazo > 2099) {
+            alertEl.textContent = 'Prazo inválido. O ano deve estar entre 1900 e 2099.';
+            alertEl.classList.remove('d-none');
+            return;
+        }
+
         if (!isEquipe && !idFuncionario) {
             alertEl.textContent = 'Escolha um funcionário destinatário.';
             alertEl.classList.remove('d-none');
